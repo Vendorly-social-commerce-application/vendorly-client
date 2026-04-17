@@ -3,12 +3,13 @@
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/badge";
 import Button from "@/components/ui/Button";
-import { Heart, Eye, Star, ShoppingCart } from "lucide-react";
+import { Eye, Star, ShoppingCart } from "lucide-react";
 import { Product } from "@/types/explore";
 import { useOrder } from "@/hooks/useOrder";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { toast } from "sonner";
+import { FavoriteButton } from "./FavoriteButton";
 
 interface ProductCardProps {
   product: Product;
@@ -115,20 +116,11 @@ export const ProductCard = ({
             </Badge>
           )}
         </div>
-
         {/* Wishlist Button - Smaller */}
-        <button
-          onClick={() => onToggleWishlist(product.id)}
-          className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-all duration-200 shadow-sm opacity-0 group-hover/card:opacity-100 translate-x-1 group-hover/card:translate-x-0 md:opacity-0 md:group-hover/card:opacity-100"
-        >
-          <Heart
-            className={`h-3 w-3 transition-all ${
-              isWishlisted
-                ? "fill-[#ef4444] text-[#ef4444] scale-110"
-                : "text-[#9ca3af] group-hover/card:text-[#ef4444]"
-            }`}
-          />
-        </button>
+        {/* Favorite Button - Always visible with high z-index */}
+        <div className="absolute top-2 right-2 z-20">
+          <FavoriteButton productId={product.id} size="sm" isWishlisted={isWishlisted}/>
+        </div>
 
         {/* Stats Badge - Smaller */}
         <div className="absolute bottom-1.5 left-1.5 flex items-center gap-0.5 bg-black/50 backdrop-blur-sm rounded-full px-1.5 py-0.5">

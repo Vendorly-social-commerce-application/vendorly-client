@@ -12,6 +12,7 @@ interface FavoriteButtonProps {
   size?: "sm" | "md" | "lg";
   showCount?: boolean;
   className?: string;
+  isWishlisted: boolean;
 }
 
 export const FavoriteButton = ({
@@ -19,6 +20,7 @@ export const FavoriteButton = ({
   size = "md",
   showCount = false,
   className,
+  isWishlisted 
 }: FavoriteButtonProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [optimistic, setOptimistic] = useState(false);
@@ -36,9 +38,15 @@ export const FavoriteButton = ({
   }, [isAuthenticated, productId]);
 
   const sizeClasses = {
-    sm: "h-3.5 w-3.5 p-1",
-    md: "h-4 w-4 p-1.5",
-    lg: "h-5 w-5 p-2",
+    sm: "h-7 w-7",
+    md: "h-8 w-8",
+    lg: "h-9 w-9",
+  };
+
+  const iconSizes = {
+    sm: "h-3.5 w-3.5",
+    md: "h-4 w-4",
+    lg: "h-5 w-5",
   };
 
   const handleClick = async (e: React.MouseEvent) => {
@@ -61,28 +69,45 @@ export const FavoriteButton = ({
   };
 
   return (
-    <button
-      onClick={handleClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className={cn(
-        "rounded-full transition-all duration-200 flex items-center justify-center",
-        "focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2",
-        isFavorited || (isHovered && !optimistic)
-          ? "bg-red-50 text-red-500"
-          : "bg-white/80 text-gray-400 hover:text-red-500",
-        sizeClasses[size],
-        className,
-      )}
-      disabled={optimistic}
-    >
-      <Heart
+    <div className="relative">
+      <button
+        onClick={handleClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         className={cn(
-          "transition-all duration-200",
-          isFavorited ? "fill-red-500 text-red-500" : "",
-          optimistic && "animate-pulse",
+          "rounded-full relative z-50 transition-all duration-200 flex items-center justify-center",
+          "focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2",
+          "shadow-md hover:shadow-lg",
+          "bg-white border border-gray-200",
+          isFavorited
+            ? "bg-red-500 border-red-500 text-white hover:bg-red-600"
+            : isHovered && !optimistic
+            ? "bg-red-50 border-red-200 text-red-500"
+            : "text-gray-500 hover:text-red-500",
+          sizeClasses[size],
+          className,
         )}
-      />
-    </button>
+        disabled={optimistic}
+      >
+        <Heart
+          className={cn(
+            iconSizes[size],
+            "transition-all duration-200",
+            (isFavorited || isWishlisted) && "fill-white text-white scale-110",
+            isFavorited ? "scale-110" : "",
+            optimistic && "animate-pulse",
+            !(isFavorited || isWishlisted) && isHovered && "scale-110"
+          )
+        }
+        />
+      </button>
+      
+      {/* Optional badge for count */}
+      {showCount && (
+        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-medium rounded-full flex items-center justify-center px-1 shadow-sm">
+          {Math.floor(Math.random() * 99) + 1}
+        </span>
+      )}
+    </div>
   );
 };
