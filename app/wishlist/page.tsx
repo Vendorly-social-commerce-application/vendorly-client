@@ -111,9 +111,9 @@ export default function WishlistPage() {
             </Link>
 
             {/* Favorite button overlay */}
-            <div className="absolute top-2 right-2">
+            {/* <div className="absolute top-2 right-2">
               <FavoriteButton productId={favorite.product.id} size="sm" />
-            </div>
+            </div> */}
 
             {/* Product Info */}
             <div className="p-3">
