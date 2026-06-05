@@ -17,17 +17,27 @@ import AccountSkeleton from "@/components/profile/AccountSkeleton";
 import { bankService, BankOption, VendorBankAccount } from "@/app/services/bank.service";
 import { toast } from "sonner";
 
+interface AccountFormState extends VendorBankAccount {
+  accountName: string;
+  status: string;
+  accountNumberLast4?: string;
+}
+
 const AccountPage = () => {
   const { profile, isLoading: isProfileLoading } = useProfile();
   const [banks, setBanks] = useState<BankOption[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [bankSearch, setBankSearch] = useState("");
-  const [formData, setFormData] = useState<VendorBankAccount>({
+  const [hasSavedAccount, setHasSavedAccount] = useState(false);
+  const [formData, setFormData] = useState<AccountFormState>({
     bankName: "",
     accountNumber: 0,
     bankCode: "",
     currency: "NGN",
+    accountName: "",
+    status: "Not configured",
+    accountNumberLast4: "",
   });
 
   const loadBankData = useCallback(async () => {
@@ -55,25 +65,34 @@ const AccountPage = () => {
         bankCode: accountData.bankCode || selectedBank?.code || "",
         accountNumber: accountData.accountNumber || 0,
         currency: accountData.currency || "NGN",
+        accountName:
+          (accountData as any).accountName || profile?.fullName || "",
+        status: (accountData as any).status || "Active",
+        accountNumberLast4:
+          (accountData as any).accountNumberLast4 ||
+          (accountData.accountNumber ? String(accountData.accountNumber).slice(-4) : ""),
       });
+      setHasSavedAccount(true);
     } catch (error: any) {
       if (error?.response?.status !== 404) {
         toast.error(
           error?.response?.data?.message ||
             "Failed to load your bank account details.",
         );
+      } else {
+        setHasSavedAccount(false);
       }
     } finally {
       setIsLoadingData(false);
     }
-  }, []);
+  }, [profile]);
 
   useEffect(() => {
     loadBankData();
   }, [loadBankData]);
 
   const handleFormChange = useCallback(
-    (field: keyof VendorBankAccount, value: string | number) => {
+    (field: keyof AccountFormState, value: string | number) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
     },
     [],
@@ -109,8 +128,21 @@ const AccountPage = () => {
 
     setIsSaving(true);
     try {
-      await bankService.saveMyBankAccount(formData);
+      const payload: VendorBankAccount = {
+        bankName: formData.bankName,
+        bankCode: formData.bankCode,
+        accountNumber: formData.accountNumber,
+        currency: formData.currency,
+      };
+
+      await bankService.saveMyBankAccount(payload);
       toast.success("Bank account details saved successfully.");
+      setFormData((prev) => ({
+        ...prev,
+        status: "Active",
+        accountNumberLast4: String(prev.accountNumber).slice(-4),
+      }));
+      setHasSavedAccount(true);
     } catch (error: any) {
       toast.error(
         error?.response?.data?.message ||
@@ -195,17 +227,32 @@ const AccountPage = () => {
                 </Select>
               </div>
 
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
-                  <Banknote className="h-4 w-4" /> Account Number
-                </label>
-                <Input
-                  type="number"
-                  value={formData.accountNumber}
-                  onChange={(e) => handleFormChange("accountNumber", parseInt(e.target.value) )}
-                  placeholder="Enter account number"
-                />
-              </div>
+              {!hasSavedAccount && (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
+                    <Banknote className="h-4 w-4" /> Account Number
+                  </label>
+                  <Input
+                    type="number"
+                    value={formData.accountNumber}
+                    onChange={(e) => handleFormChange("accountNumber", parseInt(e.target.value) )}
+                    placeholder="Enter account number"
+                  />
+                </div>
+              )}
+
+              {formData.accountNumberLast4 ? (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
+                    <Banknote className="h-4 w-4" /> Account Number (last 4)
+                  </label>
+                  <Input
+                    value={`********${formData.accountNumberLast4}`}
+                    readOnly
+                    placeholder="Not set"
+                  />
+                </div>
+              ) : null}
 
               <div>
                 <label className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
@@ -229,6 +276,28 @@ const AccountPage = () => {
                   value={formData.bankCode}
                   readOnly
                   placeholder="Selected bank code"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
+                  <Banknote className="h-4 w-4" /> Account Name
+                </label>
+                <Input
+                  value={formData.accountName}
+                  readOnly
+                  placeholder="Account holder name"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
+                  <Hash className="h-4 w-4" /> Status
+                </label>
+                <Input
+                  value={formData.status}
+                  readOnly
+                  placeholder="Account status"
                 />
               </div>
             </div>
