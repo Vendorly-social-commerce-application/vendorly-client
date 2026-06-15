@@ -9,11 +9,7 @@ import {
 } from "@/redux/slices/authSlice";
 import { User } from "@/types/user";
 import axiosInstance from "@/lib/axios";
-import {
-  clearAuthTokens,
-  getRefreshToken,
-  storeAuthTokens,
-} from "@/lib/authTokens";
+import { getRefreshToken } from "@/lib/authTokens";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 
@@ -41,7 +37,6 @@ export const useAuth = () => {
     success: false,
   });
 
-  // Define auth pages where we don't want to check auth
   const authPages = [
     "/login",
     "/signup",
@@ -54,7 +49,6 @@ export const useAuth = () => {
 
   const isAuthPage = authPages.includes(pathname);
 
-  // Check authentication status on mount, but skip on auth pages
   useEffect(() => {
     if (isAuthPage) {
       dispatch(setAuthLoading(false));
@@ -88,8 +82,6 @@ export const useAuth = () => {
       email,
       password,
     });
-
-    storeAuthTokens(response.data.token);
     dispatch(setCredentials({ user: response.data.user }));
     return response.data;
   };
@@ -111,7 +103,6 @@ export const useAuth = () => {
       "/auth/register",
       payload,
     );
-    storeAuthTokens(response.data.token);
     dispatch(setCredentials({ user: response.data.user }));
     return response.data;
   };
@@ -125,8 +116,6 @@ export const useAuth = () => {
       const response = await axiosInstance.get(
         `/auth/verify-email?token=${token}`,
       );
-      console.log(response);
-
       setVerificationStatus({ loading: false, error: null, success: true });
       return { success: true, message: response.data.message };
     } catch (error: any) {
@@ -196,11 +185,9 @@ export const useAuth = () => {
   const handleLogout = async () => {
     try {
       await axiosInstance.post("/auth/logout");
-      clearAuthTokens();
       dispatch(logout());
     } catch (error) {
       console.error("Logout error:", error);
-      clearAuthTokens();
       dispatch(logout());
     }
   };
@@ -212,7 +199,6 @@ export const useAuth = () => {
         "/auth/refresh",
         refreshToken ? { refreshToken } : undefined,
       );
-      storeAuthTokens(response.data.token);
       dispatch(setCredentials({ user: response.data.user }));
       return true;
     } catch (error) {
