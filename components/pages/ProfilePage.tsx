@@ -1,5 +1,8 @@
 "use client";
-
+import { updateUser } from "@/redux/slices/authSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
+import { useAuth } from "@/hooks/useAuth";
 import { useState, useCallback } from "react";
 import { useProfile } from "@/hooks/useProfile";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -24,8 +27,13 @@ const getImageUrl = (path: string | undefined) => {
 };
 
 export default function ProfilePage() {
+  const { user } = useAuth();
+  const dispatch = useDispatch();
+
+  // Read directly from Redux store
+  const reduxProfile = useSelector((state: RootState) => state.profile.profile);
+
   const {
-    profile,
     isLoading,
     isUpdating,
     updateVendorProfile,
@@ -62,23 +70,33 @@ export default function ProfilePage() {
   }, []);
 
   const handleEdit = useCallback(() => {
-    if (!profile) return;
+    if (!reduxProfile) return;
     setFormData({
-      fullName: profile.fullName,
-      phone: profile.phone,
-      location: profile.location || "",
-      storeName: profile.storeName,
+      fullName: reduxProfile.fullName,
+      phone: reduxProfile.phone,
+      location: reduxProfile.location || "",
+      storeName: reduxProfile.storeName,
     });
     setIsEditing(true);
-  }, [profile]);
+  }, [reduxProfile]);
 
-  // ✅ Fix 3 — only send fields with values
   const handleSave = async () => {
-    const cleanedData = Object.fromEntries(
-      Object.entries(formData).filter(([_, value]) => value.trim() !== "")
-    );
-    await updateVendorProfile(cleanedData);
-    setIsEditing(false);
+    try {
+      const cleanedData = Object.fromEntries(
+        Object.entries(formData).filter(([_, value]) => value.trim() !== "")
+      );
+      await updateVendorProfile(cleanedData);
+
+      // update auth slice so sidebar updates
+      dispatch(updateUser({
+        fullName: formData.fullName,
+        phone: formData.phone,
+      }));
+
+      setIsEditing(false);
+    } catch (error) {
+      // error handled in useProfile
+    }
   };
 
   const handleCancel = useCallback(() => {
@@ -105,29 +123,28 @@ export default function ProfilePage() {
     }
   };
 
-  // ✅ Fix 2 — strip confirmPassword before sending
- const handlePasswordSubmit = useCallback(async () => {
-  if (passwordData.newPassword !== passwordData.confirmPassword) {
-    alert("Passwords don't match");
-    return;
-  }
-  await changePassword({
-    currentPassword: passwordData.currentPassword,
-    newPassword: passwordData.newPassword,
-    confirmPassword: passwordData.confirmPassword, // 👈 add this back
-  });
-  setPasswordData({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-}, [passwordData, changePassword]);
+  const handlePasswordSubmit = useCallback(async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      alert("Passwords don't match");
+      return;
+    }
+    await changePassword({
+      currentPassword: passwordData.currentPassword,
+      newPassword: passwordData.newPassword,
+      confirmPassword: passwordData.confirmPassword,
+    });
+    setPasswordData({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
+  }, [passwordData, changePassword]);
 
   if (isLoading) {
     return <ProfileSkeleton />;
   }
 
-  if (!profile) {
+  if (!reduxProfile) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -149,11 +166,12 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <ProfileHeader
-          verified={profile.verified}
+          verified={reduxProfile.verified}
           isEditing={isEditing}
           onEdit={handleEdit}
         />
 
+        {/* Edit Profile Modal */}
         <Modal
           isOpen={isEditing}
           onClose={handleCancel}
@@ -170,6 +188,7 @@ export default function ProfilePage() {
                   type="text"
                   value={formData.fullName}
                   onChange={(e) => handleFormChange("fullName", e.target.value)}
+                  placeholder="Enter your full name"
                   className="w-full bg-transparent border-none text-gray-800 text-sm placeholder:text-gray-400 outline-none"
                 />
               </div>
@@ -183,26 +202,24 @@ export default function ProfilePage() {
                 <input
                   type="text"
                   value={formData.storeName}
-                  onChange={(e) =>
-                    handleFormChange("storeName", e.target.value)
-                  }
+                  onChange={(e) => handleFormChange("storeName", e.target.value)}
+                  placeholder="Enter your store name"
                   className="w-full bg-transparent border-none text-gray-800 text-sm placeholder:text-gray-400 outline-none"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">
                   Phone
                 </label>
                 <div className="rounded-xl border border-black/10 bg-white/70 px-3.5 py-2.5">
                   <input
-                    type="text"
+                    type="tel"
                     value={formData.phone}
-                    onChange={(e) =>
-                      handleFormChange("phone", e.target.value)
-                    }
+                    onChange={(e) => handleFormChange("phone", e.target.value)}
+                    placeholder="e.g. 08167580313"
                     className="w-full bg-transparent border-none text-gray-800 text-sm placeholder:text-gray-400 outline-none"
                   />
                 </div>
@@ -215,9 +232,8 @@ export default function ProfilePage() {
                   <input
                     type="text"
                     value={formData.location}
-                    onChange={(e) =>
-                      handleFormChange("location", e.target.value)
-                    }
+                    onChange={(e) => handleFormChange("location", e.target.value)}
+                    placeholder="e.g. Lagos"
                     className="w-full bg-transparent border-none text-gray-800 text-sm placeholder:text-gray-400 outline-none"
                   />
                 </div>
@@ -225,7 +241,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="flex gap-3 mt-8">
+          <div className="flex flex-col sm:flex-row gap-3 mt-8">
             <button
               onClick={handleCancel}
               className="flex-1 py-3 rounded-xl font-medium text-gray-700 transition-transform hover:scale-[1.02] active:scale-[0.98]"
@@ -239,7 +255,7 @@ export default function ProfilePage() {
             <button
               onClick={handleSave}
               disabled={isUpdating}
-              className="flex-1 py-3 rounded-xl font-bold text-white bg-green-500 hover:bg-green-600 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+              className="flex-1 py-3 rounded-xl font-bold text-white bg-green-500 hover:bg-green-600 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isUpdating ? "Saving..." : "Save changes"}
             </button>
@@ -249,33 +265,33 @@ export default function ProfilePage() {
         {/* Profile Overview Card */}
         <Card className="mb-8 overflow-hidden">
           <div className="h-24 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent" />
-          <CardContent className="relative px-8 pb-8">
-            <div className="flex items-start gap-8 -mt-12">
+          <CardContent className="relative px-4 sm:px-8 pb-8">
+            <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-8 -mt-12">
               <ProfileAvatar
-                profileImage={profile.profileImage}
-                fullName={profile.fullName}
+                profileImage={reduxProfile.profileImage}
+                fullName={reduxProfile.fullName}
                 isUploading={isUploadingImage}
                 onImageUpload={handleImageUpload}
                 getImageUrl={getImageUrl}
                 getInitials={getInitials}
               />
               <ProfileInfo
-                fullName={profile.fullName}
-                storeName={profile.storeName}
-                email={profile.email}
-                phone={profile.phone}
-                location={profile.location}
-                createdAt={profile.createdAt}
-                totalRevenue={profile.totalRevenue}
+                fullName={reduxProfile.fullName}
+                storeName={reduxProfile.storeName}
+                email={reduxProfile.email}
+                phone={reduxProfile.phone}
+                location={reduxProfile.location}
+                createdAt={reduxProfile.createdAt}
+                totalRevenue={reduxProfile.totalRevenue}
               />
             </div>
           </CardContent>
         </Card>
 
         <ProfileStats
-          totalProducts={profile.totalProducts}
-          totalOrders={profile.totalOrders}
-          totalRevenue={profile.totalRevenue}
+          totalProducts={reduxProfile.totalProducts}
+          totalOrders={reduxProfile.totalOrders}
+          totalRevenue={reduxProfile.totalRevenue}
           formatCurrency={formatCurrency}
         />
 
@@ -284,7 +300,7 @@ export default function ProfilePage() {
           onValueChange={setActiveTab}
           className="space-y-4"
         >
-          <TabsList>
+          <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="profile">Profile Information</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="store">Store Settings</TabsTrigger>
@@ -292,7 +308,7 @@ export default function ProfilePage() {
 
           <TabsContent value="profile">
             <ProfileInfoTab
-              profile={profile}
+              profile={reduxProfile}
               isEditing={isEditing}
               isUpdating={isUpdating}
               formData={formData}
@@ -313,7 +329,7 @@ export default function ProfilePage() {
 
           <TabsContent value="store">
             <StoreTab
-              profile={profile}
+              profile={reduxProfile}
               isEditing={isEditing}
               formData={formData}
               onFormChange={handleFormChange}
