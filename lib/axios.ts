@@ -9,7 +9,6 @@ import {
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 console.log("API URL:", apiUrl);
 
-
 const axiosInstance = axios.create({
   baseURL: apiUrl,
   headers: {
@@ -32,7 +31,7 @@ function addSubscriber(cb: () => void) {
 
 const isPublicAuthEndpoint = (url: string | undefined): boolean => {
   if (!url) return false;
-  
+
   const authPaths = [
     "/auth/login",
     "/auth/signup",
@@ -43,7 +42,7 @@ const isPublicAuthEndpoint = (url: string | undefined): boolean => {
     "/auth/refresh",
     "/auth/logout",
   ];
-  
+
   return authPaths.some((path) => url.includes(path));
 };
 
@@ -115,11 +114,19 @@ axiosInstance.interceptors.response.use(
         isRefreshing = false;
 
         clearAuthTokens();
-        
-        // Redirect to login only if not already there
+
+        const publicPages = [
+          "/",
+          "/login",
+          "/signup",
+          "/forgot-password",
+          "/reset-password",
+          "/verify-email",
+        ];
+
         if (
           typeof window !== "undefined" &&
-          !window.location.pathname.includes("/login")
+          !publicPages.includes(window.location.pathname)
         ) {
           window.location.href = "/login";
         }

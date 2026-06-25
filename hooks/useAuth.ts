@@ -87,7 +87,6 @@ export const useAuth = () => {
       password,
     });
 
-    console.log("Login response:", response.data); // 👈 temporary debug log
     storeAuthTokens(response.data.token);
     dispatch(setCredentials({ user: response.data.user }));
     return response.data;
