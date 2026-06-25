@@ -85,16 +85,6 @@ const StatusBadge = ({ status }: { status: Order["status"] }) => {
 
   const config = statusConfig[status];
 
-  // if (!config) {
-  //   return (
-  //     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-50">
-  //       <span className="text-sm font-medium text-gray-700">
-  //         {status || "Unknown"}
-  //       </span>
-  //     </div>
-  //   );
-  // }
-
   return (
     <div
       className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${config.bg}`}
