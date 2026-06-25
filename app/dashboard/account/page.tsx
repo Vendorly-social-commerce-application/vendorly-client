@@ -252,11 +252,11 @@ const AccountPage = () => {
           </div>
           {hasSavedAccount && (
             <button
-              onClick={openEditModal}
+              // onClick={openEditModal}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition-colors"
             >
               <Pencil className="h-4 w-4" />
-              Edit Bank Details
+              Your Bank Details
             </button>
           )}
         </div>
