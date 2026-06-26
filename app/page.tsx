@@ -14,12 +14,7 @@ import {
   Award,
   BarChart,
   Shield,
-  Headphones,
   ArrowRight,
-  Play,
-  Gift,
-  Heart,
-  Clock,
   Globe,
 } from "lucide-react";
 import Image from "next/image";
@@ -88,7 +83,7 @@ export default function Home() {
             {/* Right Panel - Image */}
             <div className="lg:col-span-1">
               <div className="relative w-full h-[500px] rounded-2xl overflow-hidden bg-gradient-to-br from-green-200 to-green-300">
-                {/* Placeholder for image - you can replace this with an actual image */}
+                {/* Placeholder for image */}
                 <Image
                   src="/images/hero-illustration.png"
                   alt="Vendorly Storefront Example"
@@ -101,7 +96,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ====== NEW SECTION: Social Proof / Trust Bar ====== */}
+      {/* ====== Social Proof / Trust Bar ====== */}
       <section className="bg-white border-y border-gray-100 py-8">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
@@ -207,7 +202,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ====== NEW SECTION: What Vendorly Does For You ====== */}
+      {/* ====== What Vendorly Does For You ====== */}
       <section className="bg-white py-20">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
           <div className="text-center mb-16">
@@ -341,7 +336,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ====== NEW SECTION: Platform Benefits ====== */}
+      {/* ====== Platform Benefits ====== */}
       <section className="bg-gradient-to-br from-green-600 to-emerald-700 py-16">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
           <div className="grid md:grid-cols-3 gap-8 text-center">
@@ -387,7 +382,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ====== SECTION: Live Store Preview ====== */}
+      {/* ====== Live Store Preview ====== */}
       <section className="bg-white py-20 overflow-hidden">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -614,7 +609,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ====== NEW SECTION: FAQ / Questions ====== */}
+      {/* ====== FAQ / Questions ====== */}
       <section className="bg-gray-50 py-20">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
           <div className="text-center mb-16">
@@ -668,7 +663,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ====== NEW SECTION: Quick Start Guide ====== */}
+      {/* ====== Quick Start Guide ====== */}
       <section className="bg-white py-20">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
           <div className="max-w-4xl mx-auto">
@@ -835,7 +830,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA + Community Section (Existing) */}
+      {/* CTA + Community Section */}
       <section className="bg-gray-100 py-20">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
           {/* Community Card */}
@@ -980,7 +975,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Store CTA — sits below as a quieter secondary action */}
+          {/* Store CTA */}
           <div className="rounded-2xl bg-white border border-gray-200 px-8 py-10 text-center shadow-sm">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
               Ready to Start Selling?
