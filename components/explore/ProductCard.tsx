@@ -36,7 +36,6 @@ export const ProductCard = ({
     ["Hot Deal", "Hot", "Bestseller", "Trending"].includes(tag),
   );
 
-  console.log(product)
   
   const isLowStock = product.quantity > 0 && product.quantity < 5;
   const isOutOfStock = product.quantity === 0;
