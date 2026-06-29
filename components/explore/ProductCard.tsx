@@ -3,13 +3,14 @@
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/badge";
 import Button from "@/components/ui/Button";
-import { Eye, Star, ShoppingCart } from "lucide-react";
+import { Eye, Star, ShoppingCart, MessageCircle } from "lucide-react";
 import { Product } from "@/types/explore";
 import { useOrder } from "@/hooks/useOrder";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { toast } from "sonner";
 import { FavoriteButton } from "./FavoriteButton";
+import { useAddToCart } from "@/hooks/useCart";
 
 interface ProductCardProps {
   product: Product;
@@ -28,12 +29,15 @@ export const ProductCard = ({
 }: ProductCardProps) => {
   const { createOrder, isCreating } = useOrder();
   const { user } = useSelector((state: RootState) => state.auth);
+  const { addToCart, isAdding } = useAddToCart();
   const productImage = product.images?.[0]?.url || "📦";
 
   const isHotDeal = product.tags?.some((tag) =>
     ["Hot Deal", "Hot", "Bestseller", "Trending"].includes(tag),
   );
 
+  console.log(product)
+  
   const isLowStock = product.quantity > 0 && product.quantity < 5;
   const isOutOfStock = product.quantity === 0;
 
@@ -79,6 +83,22 @@ export const ProductCard = ({
         position: "top-center",
       });
       console.error("Failed to create order:", error);
+    }
+  };
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isOutOfStock || isAdding) return;
+
+    try {
+      await addToCart({
+        productId: product.id,
+        quantity: 1,
+      });
+      // Success toast is handled in the hook
+    } catch (error) {
+      // Error toast is handled in the hook
+      console.error("Failed to add to cart:", error);
     }
   };
 
@@ -179,50 +199,66 @@ export const ProductCard = ({
           <span className="text-[8px] text-[#9ca3af]">(128)</span>
         </div>
 
-        {/* Order Button */}
-        <Button
-          className={`w-full mt-1 font-medium text-[10px] h-7 transition-all duration-200 rounded-md disabled:cursor-not-allowed ${
-            isCreating
-              ? "bg-gray-400 hover:bg-gray-400 text-white"
-              : isOutOfStock
-                ? "bg-gray-300 hover:bg-gray-300 text-gray-500"
-                : "bg-[#10b981] hover:bg-[#059669] text-white"
-          }`}
-          size="sm"
-          disabled={isOutOfStock || isCreating}
-          onClick={handleWhatsAppOrder}
-        >
-          {isCreating ? (
-            <div className="flex items-center justify-center gap-1">
-              <svg
-                className="animate-spin h-3 w-3 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              <span>Processing...</span>
-            </div>
-          ) : (
-            <>
-              <ShoppingCart className="mr-1 h-2.5 w-2.5 transition-transform" />
-              {isOutOfStock ? "Out of Stock" : "Order"}
-            </>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1.5 mt-1">
+          {/* Add to Cart Button */}
+          <Button
+            className={`flex-1 font-medium text-[10px] h-7 transition-all duration-200 rounded-md disabled:cursor-not-allowed ${
+              isAdding
+                ? "bg-gray-400 hover:bg-gray-400 text-white"
+                : isOutOfStock
+                  ? "bg-gray-300 hover:bg-gray-300 text-gray-500"
+                  : "bg-[#10b981] hover:bg-[#059669] text-white"
+            }`}
+            size="sm"
+            disabled={isOutOfStock || isAdding}
+            onClick={handleAddToCart}
+          >
+            {isAdding ? (
+              <div className="flex items-center justify-center gap-1">
+                <svg
+                  className="animate-spin h-3 w-3 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                <span>Adding...</span>
+              </div>
+            ) : (
+              <>
+                <ShoppingCart className="mr-1 h-2.5 w-2.5 transition-transform" />
+                {isOutOfStock ? "Out of Stock" : "Add to Cart"}
+              </>
+            )}
+          </Button>
+
+          {/* WhatsApp Order Button */}
+          {!isOutOfStock && (
+            <Button
+              className="h-7 w-7 p-0 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-md transition-all duration-200 flex items-center justify-center flex-shrink-0"
+              size="sm"
+              onClick={handleWhatsAppOrder}
+              disabled={isCreating}
+              title="Order via WhatsApp"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+            </Button>
           )}
-        </Button>
+        </div>
       </CardContent>
     </Card>
   );

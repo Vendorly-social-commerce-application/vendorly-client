@@ -10,8 +10,6 @@ import {
   User2,
   X,
   ChevronDown,
-  Settings,
-  HelpCircle,
   LayoutDashboard,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
@@ -22,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { useAuth } from "@/hooks/useAuth";
+import { useGetCart } from "@/hooks/useCart";
 import Image from "next/image";
 
 interface ExploreHeaderProps {
@@ -44,6 +43,12 @@ export const ExploreHeader = ({
   );
   const { logout } = useAuth();
   const router = useRouter();
+
+  // Get cart count from Redux store
+  const cartItemCount = useSelector((state: RootState) => state.cart.itemCount);
+
+  // Fetch cart data from DB when authenticated
+  useGetCart();
 
   useEffect(() => {
     setIsHydrated(true);
@@ -143,14 +148,13 @@ export const ExploreHeader = ({
             <Button
               variant="ghost"
               size="sm"
-              className="relative hover:bg-[#f3f4f6] transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed"
+              className="relative hover:bg-[#f3f4f6] transition-all duration-200 hover:scale-105"
               onClick={() => router.push("/cart")}
-              disabled 
             >
               <ShoppingCart className="h-5 w-5 text-[#6b7280] hover:text-[#10b981] transition-colors" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-gradient-to-r from-[#10b981] to-[#059669] text-white text-[10px] flex items-center justify-center font-bold shadow-sm">
-                  {cartCount > 99 ? "99+" : cartCount}
+              {isAuthenticated && cartItemCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-gradient-to-r from-[#10b981] to-[#059669] text-white text-[10px] flex items-center justify-center font-bold shadow-sm animate-in zoom-in duration-200">
+                  {cartItemCount > 99 ? "99+" : cartItemCount}
                 </span>
               )}
             </Button>
@@ -164,19 +168,17 @@ export const ExploreHeader = ({
                 >
                   <div className="relative">
                     <div className="h-8 w-8 rounded-full bg-gradient-to-r from-[#10b981] to-[#059669] flex items-center justify-center text-white text-sm font-medium shadow-md overflow-hidden">
-                      {
-                        user.profileImage ? 
+                      {user.profileImage ? (
                         <Image
-                        src={user.profileImage!}
-                        height={500}
-                        width={500}
-                        alt="user logo"
-                        className="h-full w-full object-cover"
-                        /> : (
-                          <span>{getInitials(user.fullName || 'User')}</span>
-                        )
-                      } 
-                     
+                          src={user.profileImage!}
+                          height={500}
+                          width={500}
+                          alt="user logo"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span>{getInitials(user.fullName || "User")}</span>
+                      )}
                     </div>
                     <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-white" />
                   </div>
@@ -235,24 +237,6 @@ export const ExploreHeader = ({
                           My Profile
                         </Link>
                       )}
-
-                      {/* <Link
-                        href="/dashboard/settings"
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-[#374151] hover:bg-[#f3f4f6] transition-colors"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <Settings className="h-4 w-4" />
-                        Settings
-                      </Link> */}
-
-                      {/* <Link
-                        href="/help"
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-[#374151] hover:bg-[#f3f4f6] transition-colors"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <HelpCircle className="h-4 w-4" />
-                        Help & Support
-                      </Link> */}
 
                       <div className="border-t border-[#e5e7eb] my-1" />
 

@@ -8,6 +8,7 @@ import financeReducer from './slices/financeSlice';
 import profileReducer from './slices/profileSlice';
 import exploreReducer from './slices/exploreSlice'
 import notificationReducer from './slices/notificationSlice';
+import cartReducer from './slices/cartSlice';
 import favoriteReducer  from './slices/favoriteSlice';
 
 
@@ -22,6 +23,7 @@ export const store = configureStore({
     profile: profileReducer,
     explore: exploreReducer,
     notifications: notificationReducer,
+    cart: cartReducer,
     favorites: favoriteReducer,
   },
 });
