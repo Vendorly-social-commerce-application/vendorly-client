@@ -44,6 +44,7 @@ import { orderService } from "@/app/services/order.service";
 import { useAuth } from "@/hooks/useAuth";
 import { Order } from "@/types/order";
 import OrderDetailsModal from "@/components/orders/OrderDetailModal";
+import VendorlyLogoLink from "@/components/layout/VendorlyLogoLink";
 import { toast } from "sonner";
 
 type OrderStatusFilter = Order["status"] | "ALL";
@@ -717,6 +718,7 @@ export default function MyOrdersPage({
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f9fafb] via-white to-[#f9fafb]">
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <VendorlyLogoLink className="mb-6" />
         {content}
       </div>
     </div>

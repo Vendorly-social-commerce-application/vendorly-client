@@ -3,12 +3,13 @@ import { Store, Award, Mail, Phone, MapPin, Calendar } from "lucide-react";
 
 interface ProfileInfoProps {
   fullName: string;
-  storeName: string;
+  storeName?: string;
   email: string;
   phone: string;
   location?: string;
   createdAt: string;
-  totalRevenue: number;
+  totalRevenue?: number;
+  role?: "CUSTOMER" | "VENDOR";
 }
 
 export const ProfileInfo = ({
@@ -18,15 +19,18 @@ export const ProfileInfo = ({
   phone,
   location,
   createdAt,
-  totalRevenue,
+  totalRevenue = 0,
+  role = "VENDOR",
 }: ProfileInfoProps) => {
+  const isCustomer = role === "CUSTOMER";
+
   return (
     <div className="flex-1">
       {/* Name and Store Section */}
       <div className="border-b border-gray-100 pb-4">
         <div className="flex items-center gap-3 mb-2">
           <h2 className="text-2xl font-bold text-gray-900">{fullName}</h2>
-          {totalRevenue >= 1000000 && (
+          {!isCustomer && totalRevenue >= 1000000 && (
             <Badge
               variant="outline"
               className="border-amber-200 bg-amber-50 text-amber-700 px-3 py-1 text-xs font-medium"
@@ -36,10 +40,12 @@ export const ProfileInfo = ({
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-2 text-gray-600">
-          <Store className="h-4 w-4" />
-          <span className="text-base font-medium">{storeName}</span>
-        </div>
+        {!isCustomer && storeName && (
+          <div className="flex items-center gap-2 text-gray-600">
+            <Store className="h-4 w-4" />
+            <span className="text-base font-medium">{storeName}</span>
+          </div>
+        )}
       </div>
 
       {/* Contact Information Grid */}
@@ -119,12 +125,16 @@ export const ProfileInfo = ({
       {/* Quick Stats Row - Optional */}
       <div className="flex items-center gap-6 mt-6 pt-4 border-t border-gray-100">
         <div>
-          <p className="text-xs text-gray-500">Store Status</p>
+          <p className="text-xs text-gray-500">
+            {isCustomer ? "Profile Status" : "Store Status"}
+          </p>
           <p className="text-sm font-medium text-green-600">Active</p>
         </div>
         <div>
           <p className="text-xs text-gray-500">Account Type</p>
-          <p className="text-sm font-medium text-gray-900">Vendor</p>
+          <p className="text-sm font-medium text-gray-900">
+            {isCustomer ? "Customer" : "Vendor"}
+          </p>
         </div>
         <div>
           <p className="text-xs text-gray-500">Last Updated</p>

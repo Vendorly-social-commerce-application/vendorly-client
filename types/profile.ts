@@ -20,6 +20,20 @@ export interface VendorProfile {
   totalRevenue: number;
 }
 
+export interface CustomerProfile {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  location?: string;
+  profileImage?: string;
+  role: "CUSTOMER";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type Profile = VendorProfile | CustomerProfile;
+
 export interface UpdateProfileData {
   fullName?: string;
   phone?: string;
@@ -29,6 +43,13 @@ export interface UpdateProfileData {
   bankName?: string;
   accountNumber?: string;
   accountHolderName?: string;
+}
+
+export interface UpdateCustomerProfileData {
+  fullName?: string;
+  phone?: string;
+  location?: string;
+  profileImage?: string;
 }
 
 export interface ChangePasswordData {

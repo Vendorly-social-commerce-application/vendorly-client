@@ -16,6 +16,7 @@ import { ProfileInfoTab } from "@/components/profile/tabs/ProfileInfoTabs";
 import { SecurityTab } from "@/components/profile/tabs/SecurityTabs";
 import { StoreTab } from "@/components/profile/tabs/StoreTabs";
 import { Modal } from "@/components/ui/Modal";
+import VendorlyLogoLink from "@/components/layout/VendorlyLogoLink";
 import { User } from "lucide-react";
 
 const getImageUrl = (path: string | undefined) => {
@@ -29,6 +30,7 @@ const getImageUrl = (path: string | undefined) => {
 export default function ProfilePage() {
   const { user } = useAuth();
   const dispatch = useDispatch();
+  const isCustomer = user?.role === "CUSTOMER";
 
   // Read directly from Redux store
   const reduxProfile = useSelector((state: RootState) => state.profile.profile);
@@ -75,17 +77,24 @@ export default function ProfilePage() {
       fullName: reduxProfile.fullName,
       phone: reduxProfile.phone,
       location: reduxProfile.location || "",
-      storeName: reduxProfile.storeName,
+      storeName:
+        !isCustomer && "storeName" in reduxProfile ? reduxProfile.storeName : "",
     });
     setIsEditing(true);
-  }, [reduxProfile]);
+  }, [isCustomer, reduxProfile]);
 
   const handleSave = async () => {
     try {
-      const cleanedData = Object.fromEntries(
-        Object.entries(formData).filter(([_, value]) => value.trim() !== "")
+      const customerPayload = {
+        fullName: formData.fullName,
+        phone: formData.phone,
+        location: formData.location,
+      };
+      const vendorPayload = Object.fromEntries(
+        Object.entries(formData).filter(([_, value]) => value.trim() !== ""),
       );
-      await updateVendorProfile(cleanedData);
+
+      await updateVendorProfile(isCustomer ? customerPayload : vendorPayload);
 
       // update auth slice so sidebar updates
       dispatch(updateUser({
@@ -165,10 +174,16 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {isCustomer && <VendorlyLogoLink className="mb-6" />}
         <ProfileHeader
-          verified={reduxProfile.verified}
+          verified={
+            !isCustomer && "verified" in reduxProfile
+              ? reduxProfile.verified
+              : false
+          }
           isEditing={isEditing}
           onEdit={handleEdit}
+          isCustomer={isCustomer}
         />
 
         {/* Edit Profile Modal */}
@@ -194,20 +209,24 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                Store name
-              </label>
-              <div className="rounded-xl border border-black/10 bg-white/70 px-3.5 py-2.5">
-                <input
-                  type="text"
-                  value={formData.storeName}
-                  onChange={(e) => handleFormChange("storeName", e.target.value)}
-                  placeholder="Enter your store name"
-                  className="w-full bg-transparent border-none text-gray-800 text-sm placeholder:text-gray-400 outline-none"
-                />
+            {!isCustomer && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                  Store name
+                </label>
+                <div className="rounded-xl border border-black/10 bg-white/70 px-3.5 py-2.5">
+                  <input
+                    type="text"
+                    value={formData.storeName}
+                    onChange={(e) =>
+                      handleFormChange("storeName", e.target.value)
+                    }
+                    placeholder="Enter your store name"
+                    className="w-full bg-transparent border-none text-gray-800 text-sm placeholder:text-gray-400 outline-none"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -277,23 +296,34 @@ export default function ProfilePage() {
               />
               <ProfileInfo
                 fullName={reduxProfile.fullName}
-                storeName={reduxProfile.storeName}
+                storeName={
+                  !isCustomer && "storeName" in reduxProfile
+                    ? reduxProfile.storeName
+                    : undefined
+                }
                 email={reduxProfile.email}
                 phone={reduxProfile.phone}
                 location={reduxProfile.location}
                 createdAt={reduxProfile.createdAt}
-                totalRevenue={reduxProfile.totalRevenue}
+                totalRevenue={
+                  !isCustomer && "totalRevenue" in reduxProfile
+                    ? reduxProfile.totalRevenue
+                    : 0
+                }
+                role={isCustomer ? "CUSTOMER" : "VENDOR"}
               />
             </div>
           </CardContent>
         </Card>
 
-        <ProfileStats
-          totalProducts={reduxProfile.totalProducts}
-          totalOrders={reduxProfile.totalOrders}
-          totalRevenue={reduxProfile.totalRevenue}
-          formatCurrency={formatCurrency}
-        />
+        {!isCustomer && "totalProducts" in reduxProfile && (
+          <ProfileStats
+            totalProducts={reduxProfile.totalProducts}
+            totalOrders={reduxProfile.totalOrders}
+            totalRevenue={reduxProfile.totalRevenue}
+            formatCurrency={formatCurrency}
+          />
+        )}
 
         <Tabs
           value={activeTab}
@@ -303,7 +333,9 @@ export default function ProfilePage() {
           <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="profile">Profile Information</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
-            <TabsTrigger value="store">Store Settings</TabsTrigger>
+            {!isCustomer && (
+              <TabsTrigger value="store">Store Settings</TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="profile">
@@ -327,14 +359,16 @@ export default function ProfilePage() {
             />
           </TabsContent>
 
-          <TabsContent value="store">
-            <StoreTab
-              profile={reduxProfile}
-              isEditing={isEditing}
-              formData={formData}
-              onFormChange={handleFormChange}
-            />
-          </TabsContent>
+          {!isCustomer && (
+            <TabsContent value="store">
+              <StoreTab
+                profile={reduxProfile}
+                isEditing={isEditing}
+                formData={formData}
+                onFormChange={handleFormChange}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>

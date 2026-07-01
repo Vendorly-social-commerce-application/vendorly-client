@@ -1,118 +1,155 @@
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
 import { profileService } from "@/app/services/profile.service";
 import {
-  setLoading,
-  
-  setUpdating,
-  setError,
-  setProfile,
-  updateProfile,
   clearProfile,
+  setError,
+  setLoading,
+  setProfile,
+  setUpdating,
+  updateProfile,
 } from "@/redux/slices/profileSlice";
-import { UpdateProfileData, ChangePasswordData, VendorProfile} from "@/types/profile";
+import {
+  ChangePasswordData,
+  UpdateCustomerProfileData,
+  UpdateProfileData,
+} from "@/types/profile";
 import { toast } from "sonner";
+
+const getProfileErrorMessage = (error: any, fallback: string) => {
+  const status = error?.response?.status;
+
+  if (status === 401) return "Please log in to continue";
+  if (status === 403) return "You do not have access to this profile";
+  if (status === 404) return "Profile not found";
+  if (status === 409) return "This profile update conflicts with existing data";
+
+  return error?.response?.data?.message || fallback;
+};
 
 export const useProfile = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
   const { profile, isLoading, isUpdating, error } = useSelector(
     (state: RootState) => state.profile,
   );
+  const { user, isLoading: isAuthLoading } = useSelector(
+    (state: RootState) => state.auth,
+  );
+  const isCustomer = user?.role === "CUSTOMER";
 
-  // Fetch profile
+  const handleProfileError = (error: any, fallback: string) => {
+    const message = getProfileErrorMessage(error, fallback);
+    dispatch(setError(message));
+    toast.error(message);
+
+    if (error?.response?.status === 401) {
+      router.replace("/login");
+    }
+
+    return message;
+  };
+
   const fetchProfile = async () => {
+    if (!user) return;
+
     try {
       dispatch(setLoading(true));
       dispatch(setError(null));
-      const data = await profileService.getProfile();
+
+      const data = isCustomer
+        ? await profileService.getCustomerProfile()
+        : await profileService.getProfile();
+
       dispatch(setProfile(data));
     } catch (error: any) {
-      dispatch(
-        setError(error.response?.data?.message || "Failed to fetch profile"),
-      );
-      toast.error("Failed to load profile");
+      handleProfileError(error, "Failed to load profile");
     } finally {
       dispatch(setLoading(false));
     }
   };
 
-  const updateVendorProfile = async (data: UpdateProfileData) => {
-  try {
-    dispatch(setUpdating(true));
-    dispatch(setError(null));
-    const updatedProfile = await profileService.updateProfile(data);
-    
-    // dispatch ONLY the fresh data from backend — no spreading stale state
-    dispatch(setProfile(updatedProfile));
-    
-    toast.success("Profile updated successfully");
-    return updatedProfile;
-  } catch (error: any) {
-    const message = error.response?.data?.message || "Failed to update profile";
-    dispatch(setError(message));
-    toast.error(message);
-    throw error;
-  } finally {
-    dispatch(setUpdating(false));
-  }
-};
+  const updateVendorProfile = async (
+    data: UpdateProfileData | UpdateCustomerProfileData,
+  ) => {
+    try {
+      dispatch(setUpdating(true));
+      dispatch(setError(null));
 
-  // Change password
+      const updatedProfile = isCustomer
+        ? await profileService.updateCustomerProfile(
+            data as UpdateCustomerProfileData,
+          )
+        : await profileService.updateProfile(data as UpdateProfileData);
+
+      dispatch(setProfile(updatedProfile));
+      toast.success("Profile updated successfully");
+      return updatedProfile;
+    } catch (error: any) {
+      handleProfileError(error, "Failed to update profile");
+      throw error;
+    } finally {
+      dispatch(setUpdating(false));
+    }
+  };
+
   const changePassword = async (data: ChangePasswordData) => {
     try {
       dispatch(setUpdating(true));
       dispatch(setError(null));
-      await profileService.changePassword(data);
+
+      if (isCustomer) {
+        await profileService.changeCustomerPassword(data);
+      } else {
+        await profileService.changePassword(data);
+      }
+
       toast.success("Password changed successfully");
     } catch (error: any) {
-      const message =
-        error.response?.data?.message || "Failed to change password";
-      dispatch(setError(message));
-      toast.error(message);
+      handleProfileError(error, "Failed to change password");
       throw error;
     } finally {
       dispatch(setUpdating(false));
     }
   };
 
-  // Upload profile image
   const uploadImage = async (file: File) => {
     try {
       dispatch(setUpdating(true));
       dispatch(setError(null));
-      const { profileImage } = await profileService.uploadProfileImage(file);
+
+      const { profileImage } = isCustomer
+        ? await profileService.uploadCustomerProfileImage(file)
+        : await profileService.uploadProfileImage(file);
+
       dispatch(updateProfile({ profileImage }));
       toast.success("Profile image updated");
       return profileImage;
     } catch (error: any) {
-      const message = error.response?.data?.message || "Failed to upload image";
-      dispatch(setError(message));
-      toast.error(message);
+      handleProfileError(error, "Failed to upload image");
       throw error;
     } finally {
       dispatch(setUpdating(false));
     }
   };
 
-  // Clear profile (logout)
   const handleClearProfile = () => {
     dispatch(clearProfile());
   };
 
-  // Load profile on mount
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    if (!isAuthLoading && user) {
+      fetchProfile();
+    }
+  }, [isAuthLoading, user?.id, user?.role]);
 
   return {
-    // Data
     profile,
     isLoading,
     isUpdating,
     error,
-
-    // Actions
     fetchProfile,
     updateVendorProfile,
     changePassword,

@@ -1,6 +1,8 @@
 import axiosInstance from "@/lib/axios";
 import {
+  CustomerProfile,
   VendorProfile,
+  UpdateCustomerProfileData,
   UpdateProfileData,
   ChangePasswordData,
 } from "@/types/profile";
@@ -12,9 +14,26 @@ export const profileService = {
     return response.data;
   },
 
+  getCustomerProfile: async (): Promise<CustomerProfile> => {
+    const response = await axiosInstance.get<CustomerProfile>(
+      "/customers/me/profile",
+    );
+    return response.data;
+  },
+
   // Update profile
   updateProfile: async (data: UpdateProfileData): Promise<VendorProfile> => {
     const response = await axiosInstance.patch<VendorProfile>("/profile", data);
+    return response.data;
+  },
+
+  updateCustomerProfile: async (
+    data: UpdateCustomerProfileData,
+  ): Promise<CustomerProfile> => {
+    const response = await axiosInstance.patch<CustomerProfile>(
+      "/customers/me/profile",
+      data,
+    );
     return response.data;
   },
 
@@ -31,12 +50,39 @@ changePassword: async (
   }
 },
 
+  changeCustomerPassword: async (
+    data: ChangePasswordData,
+  ): Promise<{ message: string }> => {
+    const response = await axiosInstance.post("/customers/me/change-password", {
+      currentPassword: data.currentPassword,
+      newPassword: data.newPassword,
+    });
+    return response.data;
+  },
+
   // Upload profile image
   uploadProfileImage: async (file: File): Promise<{ profileImage: string }> => {
     const formData = new FormData();
     formData.append("image", file);
     const response = await axiosInstance.post(
       "/profile/upload-image",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+    return response.data;
+  },
+
+  uploadCustomerProfileImage: async (
+    file: File,
+  ): Promise<{ profileImage: string }> => {
+    const formData = new FormData();
+    formData.append("image", file);
+    const response = await axiosInstance.post(
+      "/customers/me/profile/upload-image",
       formData,
       {
         headers: {

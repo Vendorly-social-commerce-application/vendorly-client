@@ -3,17 +3,30 @@ import Button from "@/components/ui/Button";
 import { Edit3, CheckCircle, Clock } from "lucide-react";
 
 interface ProfileHeaderProps {
-  verified: boolean;
+  verified?: boolean;
   isEditing: boolean;
   onEdit: () => void;
+  isCustomer?: boolean;
 }
 
 export const ProfileHeader = ({
   verified,
   isEditing,
   onEdit,
+  isCustomer = false,
 }: ProfileHeaderProps) => {
   const getStatusBadge = () => {
+    if (isCustomer) {
+      return (
+        <Badge
+          variant="secondary"
+          className="bg-blue-100 text-blue-700 hover:bg-blue-200"
+        >
+          Customer
+        </Badge>
+      );
+    }
+
     if (verified) {
       return (
         <Badge className="bg-emerald-500 text-white hover:bg-emerald-600">
@@ -38,7 +51,9 @@ export const ProfileHeader = ({
       <div>
         <h1 className="text-3xl font-bold">Profile</h1>
         <p className="text-muted-foreground">
-          Manage your account and store settings
+          {isCustomer
+            ? "Manage your personal account settings"
+            : "Manage your account and store settings"}
         </p>
       </div>
       <div className="flex items-center gap-3">

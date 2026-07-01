@@ -1,8 +1,8 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { VendorProfile } from "@/types/profile";
+import { Profile } from "@/types/profile";
 
 export interface ProfileState {
-  profile: VendorProfile | null;
+  profile: Profile | null;
   isLoading: boolean;
   isUpdating: boolean;
   error: string | null;
@@ -28,7 +28,7 @@ const profileSlice = createSlice({
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
     },
-   setProfile: (state, action: PayloadAction<VendorProfile | null>) => {
+   setProfile: (state, action: PayloadAction<Profile | null>) => {
   if (action.payload && state.profile) {
     // merge with existing to preserve any fields backend doesn't return
     state.profile = { ...state.profile, ...action.payload };
@@ -36,7 +36,7 @@ const profileSlice = createSlice({
     state.profile = action.payload;
   }
 },
-    updateProfile: (state, action: PayloadAction<Partial<VendorProfile>>) => {
+    updateProfile: (state, action: PayloadAction<Partial<Profile>>) => {
       if (state.profile) {
         state.profile = { ...state.profile, ...action.payload };
       }
