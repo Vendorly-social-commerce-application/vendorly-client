@@ -1,7 +1,12 @@
 export interface Order {
   id: string;
-  status: "PENDING" | "COMPLETED" | "CANCELLED";
-  type: "WHATSAPP";
+  status:
+    | "PENDING"
+    | "PAID"
+    | "DELIVERED"
+    | "COMPLETED"
+    | "CANCELLED";
+  type: "WHATSAPP" | "CHECKOUT";
   totalAmount?: number;
   customerName?: string;
   customerPhone?: string;
@@ -14,6 +19,11 @@ export interface Order {
 
   // Relationships
   vendorId: string;
+  vendorName?: string;
+  vendor?: {
+    storeName?: string;
+    storeSlug?: string;
+  };
   customerId?: string;
   orderItems: OrderItem[];
 
@@ -45,6 +55,13 @@ export interface Pagination {
 export interface OrdersResponse {
   orders: Order[];
   pagination: Pagination;
+}
+
+export interface PurchaseOrdersParams {
+  status?: "ALL" | Order["status"];
+  type?: "ALL" | Order["type"];
+  page?: number;
+  limit?: number;
 }
 
 export interface VendorStats {

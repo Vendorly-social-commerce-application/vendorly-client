@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useOrder } from "@/hooks/useOrder";
+import { orderService } from "@/app/services/order.service";
 import {
   Search,
   Filter,
@@ -10,17 +12,20 @@ import {
   Edit3,
   Trash2,
   CheckCircle,
-  XCircle,
   Clock,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  PackageCheck,
+  Truck,
+  CreditCard,
 } from "lucide-react";
 import { Order } from "@/types/order";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 import Button from "@/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import {
   Table,
@@ -89,26 +94,127 @@ const getOrderTotal = (order: Order): number => {
   return 0;
 };
 
-// Status badge variant mapping
-const getStatusVariant = (status: string) => {
+const getStatusLabel = (status: Order["status"]) => {
   switch (status) {
+    case "PAID":
+      return "Paid, awaiting delivery";
+    case "DELIVERED":
+      return "Delivered, awaiting your confirmation";
     case "COMPLETED":
-      return "default";
+      return "Completed";
     case "PENDING":
-      return "secondary";
+      return "Pending";
     case "CANCELLED":
-      return "destructive";
+      return "Cancelled";
     default:
-      return "secondary";
+      return status;
   }
 };
 
+const getStatusClassName = (status: Order["status"]) => {
+  switch (status) {
+    case "COMPLETED":
+      return "border-emerald-100 bg-emerald-50 text-emerald-700";
+    case "PAID":
+      return "border-blue-100 bg-blue-50 text-blue-700";
+    case "DELIVERED":
+      return "border-purple-100 bg-purple-50 text-purple-700";
+    case "PENDING":
+      return "border-amber-100 bg-amber-50 text-amber-700";
+    case "CANCELLED":
+      return "border-rose-100 bg-rose-50 text-rose-700";
+    default:
+      return "border-gray-100 bg-gray-50 text-gray-700";
+  }
+};
+
+const getStatusDotClassName = (status: Order["status"]) => {
+  switch (status) {
+    case "COMPLETED":
+      return "bg-emerald-500";
+    case "PAID":
+      return "bg-blue-500";
+    case "DELIVERED":
+      return "bg-purple-500";
+    case "PENDING":
+      return "bg-amber-500";
+    case "CANCELLED":
+      return "bg-rose-500";
+    default:
+      return "bg-gray-400";
+  }
+};
+
+const getSellerName = (order: Order) => {
+  return order.vendor?.storeName || order.vendorName || "Vendor";
+};
+
+const OrderStatusBadge = ({ status }: { status: Order["status"] }) => (
+  <span
+    className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${getStatusClassName(
+      status,
+    )}`}
+  >
+    <span
+      className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${getStatusDotClassName(
+        status,
+      )}`}
+    />
+    <span className="truncate">{getStatusLabel(status)}</span>
+  </span>
+);
+
+const OrderTypeBadge = ({ type }: { type: Order["type"] }) => (
+  <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-600">
+    {type === "CHECKOUT" ? "Checkout" : "WhatsApp"}
+  </span>
+);
+
+const SummaryCard = ({
+  title,
+  value,
+  icon: Icon,
+  className,
+}: {
+  title: string;
+  value: number;
+  icon: React.ElementType;
+  className: string;
+}) => (
+  <Card className="overflow-hidden border-gray-100 shadow-sm">
+    <CardContent className="flex items-center justify-between p-5">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+          {title}
+        </p>
+        <p className="mt-2 text-2xl font-bold text-gray-900">{value}</p>
+      </div>
+      <div className={`rounded-full p-3 ${className}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+    </CardContent>
+  </Card>
+);
+
 const OrdersPage = () => {
-  const { orders, getVendorOrders, isFetchingOrders, deleteOrder } = useOrder();
+  const {
+    orders,
+    getVendorOrders,
+    isFetchingOrders,
+    deleteOrder,
+    markDelivered,
+    confirmCompletion,
+  } = useOrder();
+  const { user } = useSelector((state: RootState) => state.auth);
+  const isVendor = user?.role === "VENDOR";
+  const [activeView, setActiveView] = useState<"sales" | "purchases">(
+    isVendor ? "sales" : "purchases",
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<Order["status"] | "ALL">(
     "ALL",
   );
+  const [typeFilter, setTypeFilter] = useState<Order["type"] | "ALL">("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -117,36 +223,82 @@ const OrdersPage = () => {
   const [selectedOrderForDetails, setSelectedOrderForDetails] =
     useState<Order | null>(null);
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
+  const [markingDeliveredOrderId, setMarkingDeliveredOrderId] = useState<
+    string | null
+  >(null);
+  const [confirmingOrderId, setConfirmingOrderId] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
-    getVendorOrders();
-  }, []);
+    setActiveView(isVendor ? "sales" : "purchases");
+  }, [isVendor]);
+
+  useEffect(() => {
+    if (isVendor) {
+      getVendorOrders();
+    }
+  }, [isVendor]);
+
+  const myPurchasesQuery = useQuery({
+    queryKey: [
+      "my-purchases",
+      statusFilter,
+      typeFilter,
+      currentPage,
+      pageSize,
+    ],
+    queryFn: () =>
+      orderService.getMyPurchases({
+        status: statusFilter,
+        type: typeFilter,
+        page: currentPage,
+        limit: pageSize,
+      }),
+    enabled: activeView === "purchases",
+  });
+
+  const purchaseOrders = myPurchasesQuery.data?.orders || [];
+  const purchasePagination = myPurchasesQuery.data?.pagination;
 
   // Filter orders based on search and status
   const filteredOrders = useMemo(() => {
-    if (!orders) return [];
+    const sourceOrders = activeView === "purchases" ? purchaseOrders : orders;
+    if (!sourceOrders) return [];
 
-    return orders.filter((order: Order) => {
+    return sourceOrders.filter((order: Order) => {
       const productName = getProductName(order);
       const matchesSearch =
         productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getSellerName(order).toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.id.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus =
-        statusFilter === "ALL" || order.status === statusFilter;
-      return matchesSearch && matchesStatus;
+        activeView === "purchases" ||
+        statusFilter === "ALL" ||
+        order.status === statusFilter;
+      const matchesType =
+        activeView === "sales" || typeFilter === "ALL" || order.type === typeFilter;
+      return matchesSearch && matchesStatus && matchesType;
     });
-  }, [orders, searchTerm, statusFilter]);
+  }, [activeView, orders, purchaseOrders, searchTerm, statusFilter, typeFilter]);
 
   // Paginate orders
   const paginatedOrders = useMemo(() => {
+    if (activeView === "purchases") {
+      return filteredOrders;
+    }
+
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     return filteredOrders.slice(startIndex, endIndex);
-  }, [filteredOrders, currentPage, pageSize]);
+  }, [activeView, filteredOrders, currentPage, pageSize]);
 
   // Calculate total pages
-  const totalPages = Math.ceil(filteredOrders.length / pageSize);
+  const totalPages =
+    activeView === "purchases"
+      ? purchasePagination?.pages || Math.ceil(filteredOrders.length / pageSize)
+      : Math.ceil(filteredOrders.length / pageSize);
 
   // Stats
   const totalOrders = filteredOrders.length;
@@ -168,6 +320,19 @@ const OrdersPage = () => {
   const handleStatusChange = (value: string) => {
     setStatusFilter(value as Order["status"] | "ALL");
     setCurrentPage(1); // Reset to first page on filter change
+  };
+
+  const handleTypeChange = (value: string) => {
+    setTypeFilter(value as Order["type"] | "ALL");
+    setCurrentPage(1);
+  };
+
+  const handleViewChange = (view: "sales" | "purchases") => {
+    setActiveView(view);
+    setCurrentPage(1);
+    setSearchTerm("");
+    setStatusFilter("ALL");
+    setTypeFilter("ALL");
   };
 
   const handlePageChange = (page: number) => {
@@ -205,6 +370,30 @@ const OrdersPage = () => {
     }
   };
 
+  const handleMarkDelivered = async (order: Order) => {
+    setMarkingDeliveredOrderId(order.id);
+    try {
+      await markDelivered(order.id);
+      await getVendorOrders();
+    } catch {
+      // Friendly backend error is handled in useOrder.
+    } finally {
+      setMarkingDeliveredOrderId(null);
+    }
+  };
+
+  const handleConfirmReceived = async (order: Order) => {
+    setConfirmingOrderId(order.id);
+    try {
+      await confirmCompletion(order.id);
+      await myPurchasesQuery.refetch();
+    } catch {
+      // Friendly backend error is handled in useOrder.
+    } finally {
+      setConfirmingOrderId(null);
+    }
+  };
+
   // Row click handler
   const handleRowClick = (order: Order) => {
     setSelectedOrderForDetails(order);
@@ -217,225 +406,450 @@ const OrdersPage = () => {
     setSelectedOrderForDetails(null);
   };
 
-  if (isFetchingOrders && !orders?.length) {
+  const isInitialLoading =
+    activeView === "purchases"
+      ? myPurchasesQuery.isLoading && !purchaseOrders.length
+      : isFetchingOrders && !orders?.length;
+
+  if (isInitialLoading) {
     return <OrdersPageSkeleton />;
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Orders</h1>
-            <p className="text-muted-foreground">
-              Manage and track all your orders
-            </p>
+  const pageTitle = isVendor
+    ? activeView === "sales"
+      ? "Orders"
+      : "My Purchases"
+    : "My Purchases";
+  const pageSubtitle =
+    activeView === "sales"
+      ? "Manage and track sales from your customers"
+      : "Track products you bought from other vendors";
+  const totalOrderCount =
+    activeView === "purchases"
+      ? purchasePagination?.total || filteredOrders.length
+      : filteredOrders.length;
+  const currentRangeStart = totalOrderCount
+    ? (currentPage - 1) * pageSize + 1
+    : 0;
+  const currentRangeEnd = Math.min(currentPage * pageSize, totalOrderCount);
+  const paidOrders = filteredOrders.filter((o) => o.status === "PAID").length;
+  const deliveredOrders = filteredOrders.filter(
+    (o) => o.status === "DELIVERED",
+  ).length;
+  const isActiveFetching =
+    activeView === "purchases" ? myPurchasesQuery.isFetching : isFetchingOrders;
+
+  const renderOrderAction = (order: Order) => {
+    const isThisOrderDeleting = deletingOrderId === order.id;
+
+    if (activeView === "sales") {
+      return (
+        <div className="flex flex-wrap justify-end gap-2">
+          {order.type === "CHECKOUT" && order.status === "PAID" && (
+            <Button
+              size="sm"
+              className="bg-[#10b981] text-white hover:bg-[#059669]"
+              disabled={markingDeliveredOrderId === order.id}
+              onClick={() => handleMarkDelivered(order)}
+            >
+              <Truck className="h-4 w-4 mr-2" />
+              {markingDeliveredOrderId === order.id
+                ? "Marking..."
+                : "Mark as Delivered"}
+            </Button>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" disabled={isThisOrderDeleting}>
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {order.status === "PENDING" && (
+                <DropdownMenuItem
+                  onClick={() => handleUpdate(order)}
+                  disabled={isThisOrderDeleting}
+                >
+                  <Edit3 className="h-4 w-4 mr-2" />
+                  Update
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem
+                onClick={() => handleDelete(order)}
+                className="text-destructive"
+                disabled={isThisOrderDeleting}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isThisOrderDeleting ? "Deleting..." : "Delete"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      );
+    }
+
+    if (order.type === "CHECKOUT" && order.status === "DELIVERED") {
+      return (
+        <Button
+          size="sm"
+          className="bg-[#10b981] text-white hover:bg-[#059669]"
+          disabled={confirmingOrderId === order.id}
+          onClick={() => handleConfirmReceived(order)}
+        >
+          <PackageCheck className="h-4 w-4 mr-2" />
+          {confirmingOrderId === order.id ? "Confirming..." : "Confirm Received"}
+        </Button>
+      );
+    }
+
+    return <span className="text-sm text-muted-foreground">No action</span>;
+  };
+
+  const renderMobileOrderCard = (order: Order) => {
+    const partyName =
+      activeView === "sales"
+        ? order.customerName || "Anonymous"
+        : getSellerName(order);
+
+    return (
+      <Card
+        key={order.id}
+        className="border-gray-100 shadow-sm active:scale-[0.99] transition-transform"
+      >
+        <CardContent className="space-y-4 p-4">
+          <button
+            type="button"
+            onClick={() => handleRowClick(order)}
+            className="w-full text-left"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs font-semibold text-gray-500">
+                    #{order.id.slice(-8)}
+                  </span>
+                  <OrderTypeBadge type={order.type} />
+                </div>
+                <h3 className="mt-2 line-clamp-2 text-base font-semibold text-gray-900">
+                  {getProductName(order)}
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {activeView === "sales" ? "Customer" : "Seller"}: {partyName}
+                </p>
+              </div>
+              <div className="rounded-full bg-emerald-50 p-2 text-emerald-600">
+                <ShoppingBag className="h-5 w-5" />
+              </div>
+            </div>
+          </button>
+
+          <div className="grid grid-cols-2 gap-3 rounded-lg bg-gray-50 p-3">
+            <div>
+              <p className="text-xs font-medium text-gray-500">Date</p>
+              <p className="mt-1 text-sm font-semibold text-gray-900">
+                {formatDate(order.createdAt)}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs font-medium text-gray-500">Amount</p>
+              <p className="mt-1 text-sm font-bold text-[#10b981]">
+                {formatCurrency(getOrderTotal(order))}
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <form onSubmit={handleSearch} className="relative">
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <OrderStatusBadge status={order.status} />
+            <div onClick={(e) => e.stopPropagation()}>{renderOrderAction(order)}</div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#f9fafb] via-white to-[#f9fafb]">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-6 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+          <div className="flex flex-col gap-5 p-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#10b981]/10 text-[#10b981]">
+                  <ShoppingBag className="h-5 w-5" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+                    {pageTitle}
+                  </h1>
+                  <p className="text-sm text-gray-500">{pageSubtitle}</p>
+                </div>
+              </div>
+            </div>
+
+            {isVendor && (
+              <div className="inline-flex w-full rounded-lg border border-gray-200 bg-gray-50 p-1 sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => handleViewChange("sales")}
+                  className={`flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-colors sm:flex-none ${
+                    activeView === "sales"
+                      ? "bg-white text-[#10b981] shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Sales
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleViewChange("purchases")}
+                  className={`flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-colors sm:flex-none ${
+                    activeView === "purchases"
+                      ? "bg-white text-[#10b981] shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Purchases
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-gray-100 bg-gray-50/60 p-4 lg:flex-row lg:items-center lg:justify-between">
+            <form onSubmit={handleSearch} className="relative w-full lg:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search orders..."
-                className="pl-9 w-64"
+                className="h-11 w-full rounded-lg border-gray-200 bg-white pl-9"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </form>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Filter className="h-4 w-4 mr-2" />
-                  {statusFilter === "ALL" ? "All Status" : statusFilter}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleStatusChange("ALL")}>
-                  All Status
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStatusChange("PENDING")}>
-                  Pending
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleStatusChange("COMPLETED")}
-                >
-                  Completed
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleStatusChange("CANCELLED")}
-                >
-                  Cancelled
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+
+            <div className="flex flex-wrap gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-10 bg-white">
+                    <Filter className="h-4 w-4 mr-2" />
+                    {statusFilter === "ALL" ? "All Status" : statusFilter}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleStatusChange("ALL")}>
+                    All Status
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleStatusChange("PENDING")}>
+                    Pending
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleStatusChange("PAID")}>
+                    Paid
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleStatusChange("DELIVERED")}
+                  >
+                    Delivered
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleStatusChange("COMPLETED")}
+                  >
+                    Completed
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleStatusChange("CANCELLED")}
+                  >
+                    Cancelled
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {activeView === "purchases" && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-10 bg-white">
+                      <Filter className="h-4 w-4 mr-2" />
+                      {typeFilter === "ALL" ? "All Types" : typeFilter}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleTypeChange("ALL")}>
+                      All Types
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleTypeChange("CHECKOUT")}
+                    >
+                      Checkout
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleTypeChange("WHATSAPP")}>
+                      WhatsApp
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 sm:grid-cols-4 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Orders
-              </CardTitle>
-              <ShoppingBag className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalOrders}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Completed
-              </CardTitle>
-              <CheckCircle className="h-4 w-4 text-emerald-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{completedOrders}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Pending
-              </CardTitle>
-              <Clock className="h-4 w-4 text-accent" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{pendingOrders}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Cancelled
-              </CardTitle>
-              <XCircle className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{cancelledOrders}</div>
-            </CardContent>
-          </Card>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-6">
+          <SummaryCard
+            title="Total"
+            value={totalOrders}
+            icon={ShoppingBag}
+            className="bg-emerald-50 text-emerald-600"
+          />
+          <SummaryCard
+            title="Completed"
+            value={completedOrders}
+            icon={CheckCircle}
+            className="bg-blue-50 text-blue-600"
+          />
+          <SummaryCard
+            title={activeView === "sales" ? "Paid" : "Delivered"}
+            value={activeView === "sales" ? paidOrders : deliveredOrders}
+            icon={activeView === "sales" ? CreditCard : PackageCheck}
+            className="bg-purple-50 text-purple-600"
+          />
+          <SummaryCard
+            title="Needs Attention"
+            value={pendingOrders + cancelledOrders}
+            icon={Clock}
+            className="bg-amber-50 text-amber-600"
+          />
         </div>
 
         {/* Orders Table */}
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedOrders.length > 0 ? (
-                  paginatedOrders.map((order: Order) => {
-                    const isThisOrderDeleting = deletingOrderId === order.id;
+        <Card className="overflow-hidden border-gray-100 shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-gray-100 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">
+                {activeView === "sales" ? "Sales orders" : "Purchase history"}
+              </h2>
+              <p className="text-sm text-gray-500">
+                {totalOrderCount} {totalOrderCount === 1 ? "order" : "orders"}{" "}
+                found
+              </p>
+            </div>
+            {isActiveFetching && (
+              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+                Refreshing
+              </div>
+            )}
+          </div>
 
-                    return (
-                      <TableRow
-                        key={order.id}
-                        className={`cursor-pointer hover:bg-muted/50 transition-all duration-200 ${
-                          isThisOrderDeleting
-                            ? "opacity-50 pointer-events-none bg-gray-50"
-                            : ""
-                        }`}
-                        onClick={() =>
-                          !isThisOrderDeleting && handleRowClick(order)
-                        }
-                      >
-                        <TableCell className="font-medium">
-                          #{order.id.slice(-8)}
-                        </TableCell>
-                        <TableCell>
-                          {order.customerName || "Anonymous"}
-                        </TableCell>
-                        <TableCell>{getProductName(order)}</TableCell>
-                        <TableCell>{formatDate(order.createdAt)}</TableCell>
-                        <TableCell className="font-semibold text-primary">
-                          {formatCurrency(getOrderTotal(order))}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              order.status === "COMPLETED"
-                                ? "default"
-                                : (getStatusVariant(order.status) as any)
-                            }
-                            className={
-                              order.status === "COMPLETED"
-                                ? "bg-emerald-500 text-white hover:bg-emerald-600"
+          <CardContent className="p-0">
+            {paginatedOrders.length > 0 ? (
+              <>
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader className="bg-gray-50/80">
+                      <TableRow className="hover:bg-gray-50/80">
+                        <TableHead className="px-5 py-3 text-xs font-bold uppercase tracking-wide text-gray-500">
+                          Order
+                        </TableHead>
+                        <TableHead className="px-5 py-3 text-xs font-bold uppercase tracking-wide text-gray-500">
+                          {activeView === "sales" ? "Customer" : "Seller"}
+                        </TableHead>
+                        <TableHead className="px-5 py-3 text-xs font-bold uppercase tracking-wide text-gray-500">
+                          Date
+                        </TableHead>
+                        <TableHead className="px-5 py-3 text-xs font-bold uppercase tracking-wide text-gray-500">
+                          Amount
+                        </TableHead>
+                        <TableHead className="px-5 py-3 text-xs font-bold uppercase tracking-wide text-gray-500">
+                          Status
+                        </TableHead>
+                        <TableHead className="px-5 py-3 text-right text-xs font-bold uppercase tracking-wide text-gray-500">
+                          Action
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedOrders.map((order: Order) => {
+                        const partyName =
+                          activeView === "sales"
+                            ? order.customerName || "Anonymous"
+                            : getSellerName(order);
+                        const isThisOrderDeleting = deletingOrderId === order.id;
+
+                        return (
+                          <TableRow
+                            key={order.id}
+                            className={`cursor-pointer border-gray-100 transition-colors hover:bg-emerald-50/30 ${
+                              isThisOrderDeleting
+                                ? "pointer-events-none bg-gray-50 opacity-50"
                                 : ""
+                            }`}
+                            onClick={() =>
+                              !isThisOrderDeleting && handleRowClick(order)
                             }
                           >
-                            {order.status.toLowerCase()}
-                          </Badge>
-                        </TableCell>
-                        <TableCell
-                          className="text-right"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                disabled={isThisOrderDeleting}
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {/* Only show Update option if order is PENDING */}
-                              {order.status === "PENDING" && (
-                                <DropdownMenuItem
-                                  onClick={() => handleUpdate(order)}
-                                  disabled={isThisOrderDeleting}
-                                >
-                                  <Edit3 className="h-4 w-4 mr-2" />
-                                  Update
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem
-                                onClick={() => handleDelete(order)}
-                                className="text-destructive"
-                                disabled={isThisOrderDeleting}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                {isThisOrderDeleting ? "Deleting..." : "Delete"}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      <div className="flex flex-col items-center justify-center">
-                        <ShoppingBag className="h-8 w-8 text-muted-foreground mb-2" />
-                        <p className="text-muted-foreground">No orders found</p>
-                        <p className="text-sm text-muted-foreground">
-                          {searchTerm || statusFilter !== "ALL"
-                            ? "Try adjusting your filters"
-                            : "When customers place orders, they'll appear here"}
-                        </p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                            <TableCell className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
+                                  <ShoppingBag className="h-5 w-5" />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono text-sm font-semibold text-gray-900">
+                                      #{order.id.slice(-8)}
+                                    </span>
+                                    <OrderTypeBadge type={order.type} />
+                                  </div>
+                                  <p className="mt-1 max-w-[260px] truncate text-sm text-gray-500">
+                                    {getProductName(order)}
+                                  </p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-5 py-4">
+                              <div className="font-medium text-gray-900">
+                                {partyName}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {activeView === "sales" ? "Buyer" : "Store"}
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-5 py-4 text-sm text-gray-600">
+                              {formatDate(order.createdAt)}
+                            </TableCell>
+                            <TableCell className="px-5 py-4 font-semibold text-gray-900">
+                              {formatCurrency(getOrderTotal(order))}
+                            </TableCell>
+                            <TableCell className="px-5 py-4">
+                              <OrderStatusBadge status={order.status} />
+                            </TableCell>
+                            <TableCell
+                              className="px-5 py-4 text-right"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {renderOrderAction(order)}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="grid gap-3 p-4 md:hidden">
+                  {paginatedOrders.map(renderMobileOrderCard)}
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
+                  <ShoppingBag className="h-7 w-7 text-gray-400" />
+                </div>
+                <p className="font-semibold text-gray-900">No orders found</p>
+                <p className="mt-1 max-w-sm text-sm text-gray-500">
+                  {searchTerm || statusFilter !== "ALL"
+                    ? "Try adjusting your filters"
+                    : activeView === "sales"
+                      ? "When customers place orders, they'll appear here"
+                      : "Your purchases will appear here after checkout"}
+                </p>
+              </div>
+            )}
           </CardContent>
 
           {/* Pagination */}
@@ -444,9 +858,8 @@ const OrdersPage = () => {
               {/* Left side - Showing X to Y of Z orders & Page size selector */}
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
                 <span className="text-sm text-muted-foreground whitespace-nowrap">
-                  Showing {(currentPage - 1) * pageSize + 1} to{" "}
-                  {Math.min(currentPage * pageSize, filteredOrders.length)} of{" "}
-                  {filteredOrders.length} orders
+                  Showing {currentRangeStart} to {currentRangeEnd} of{" "}
+                  {totalOrderCount} orders
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground hidden sm:inline">

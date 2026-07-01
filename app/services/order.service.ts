@@ -12,7 +12,13 @@ import {
   setSelectedOrder,
   setFilters,
 } from "@/redux/slices/orderSlice";
-import { Order, VendorStats, UpdateOrderPayload } from "@/types/order";
+import {
+  Order,
+  OrdersResponse,
+  PurchaseOrdersParams,
+  VendorStats,
+  UpdateOrderPayload,
+} from "@/types/order";
 
 export const orderService = {
   // Track WhatsApp click
@@ -55,6 +61,32 @@ export const orderService = {
     } finally {
       store.dispatch(setLoading(false));
     }
+  },
+
+  // Get orders where the logged-in user is the buyer
+  getMyPurchases: async (
+    params?: PurchaseOrdersParams,
+  ): Promise<OrdersResponse> => {
+    const response = await axiosInstance.get("/orders/my-purchases", {
+      params,
+    });
+    return response.data;
+  },
+
+  // Vendor action for checkout orders that have been paid
+  markDelivered: async (orderId: string): Promise<Order> => {
+    const response = await axiosInstance.patch<Order>(
+      `/orders/${orderId}/mark-delivered`,
+    );
+    return response.data;
+  },
+
+  // Buyer action for checkout orders delivered by the vendor
+  confirmCompletion: async (orderId: string): Promise<Order> => {
+    const response = await axiosInstance.post<Order>(
+      `/orders/${orderId}/confirm-completion`,
+    );
+    return response.data;
   },
 
   // Get vendor stats

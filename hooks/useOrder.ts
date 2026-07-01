@@ -10,6 +10,7 @@ import {
   updateOrderInList,
 } from "@/redux/slices/orderSlice";
 import { setError } from "@/redux/slices/storeSlice";
+import { toast } from "sonner";
 
 interface CreateOrderData {
   productId: string;
@@ -104,6 +105,46 @@ export const useOrder = () => {
     },
   });
 
+  const markDelivered = useMutation({
+    mutationFn: async (orderId: string) => {
+      return orderService.markDelivered(orderId);
+    },
+    onSuccess: (data) => {
+      dispatch(updateOrderInList(data));
+      toast.success("Order marked as delivered");
+      queryClient.invalidateQueries({ queryKey: ["vendor-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["my-purchases"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    },
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to mark order as delivered",
+      );
+    },
+  });
+
+  const confirmCompletion = useMutation({
+    mutationFn: async (orderId: string) => {
+      return orderService.confirmCompletion(orderId);
+    },
+    onSuccess: (data) => {
+      dispatch(updateOrderInList(data));
+      toast.success("Order completed successfully");
+      queryClient.invalidateQueries({ queryKey: ["my-purchases"] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    },
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to confirm order completion",
+      );
+    },
+  });
+
   return {
     // data from redux
     orders,
@@ -121,5 +162,9 @@ export const useOrder = () => {
     isUpdating: updateOrderStatus.isPending,
     deleteOrder: deleteOrder.mutateAsync,
     isDeleting: deleteOrder.isPending,
+    markDelivered: markDelivered.mutateAsync,
+    isMarkingDelivered: markDelivered.isPending,
+    confirmCompletion: confirmCompletion.mutateAsync,
+    isConfirmingCompletion: confirmCompletion.isPending,
   };
 };

@@ -66,6 +66,12 @@ const StatusBadge = ({ status }: { status: Order["status"] }) => {
       icon: CreditCard,
       label: "Paid",
     },
+    DELIVERED: {
+      bg: "bg-purple-50",
+      text: "text-purple-700",
+      icon: ShoppingBag,
+      label: "Delivered",
+    },
     CANCELLED: {
       bg: "bg-rose-50",
       text: "text-rose-700",
