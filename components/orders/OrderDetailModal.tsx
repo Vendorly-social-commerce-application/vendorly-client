@@ -31,6 +31,8 @@ interface OrderDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   order: Order;
+  detailsHref?: string;
+  showFullDetailsButton?: boolean;
 }
 
 // Format currency
@@ -107,12 +109,14 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   isOpen,
   onClose,
   order,
+  detailsHref,
+  showFullDetailsButton = true,
 }) => {
   const router = useRouter();
 
   const handleViewFullDetails = () => {
     onClose();
-    router.push(`/dashboard/orders/${order.id}`);
+    router.push(detailsHref || `/dashboard/orders/${order.id}`);
   };
 
   // Get product details
@@ -270,10 +274,12 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4 border-t">
-            <Button onClick={handleViewFullDetails} className="flex-1">
-              <ExternalLink className="w-4 h-4 mr-2" />
-              View Full Details
-            </Button>
+            {showFullDetailsButton && (
+              <Button onClick={handleViewFullDetails} className="flex-1">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                View Full Details
+              </Button>
+            )}
             <Button variant="outline" onClick={onClose}>
               <X className="w-4 h-4 mr-2" />
               Close

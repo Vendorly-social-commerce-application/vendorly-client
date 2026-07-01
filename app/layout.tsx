@@ -60,6 +60,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
     "/dashboard",
     "/dashboard/products",
     "/dashboard/products/addProduct",
+    "/my-orders",
     "/profile",
     "/settings",
   ];

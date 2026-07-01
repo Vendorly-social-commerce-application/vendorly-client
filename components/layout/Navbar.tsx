@@ -7,7 +7,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { useAuth } from "@/hooks/useAuth";
 import Button from "@/components/ui/Button";
-import { LogOut, User, ShoppingBag, Menu, X } from "lucide-react";
+import { LogOut, User, ShoppingBag, Menu, X, PackageCheck } from "lucide-react";
 
 export default function Navbar() {
   const [isHydrated, setIsHydrated] = useState(false);
@@ -124,12 +124,20 @@ export default function Navbar() {
                       Dashboard
                     </Link>
                   ) : (
-                    <Link
-                      href="/explore"
-                      className="px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors whitespace-nowrap"
-                    >
-                      Explore
-                    </Link>
+                    <>
+                      <Link
+                        href="/explore"
+                        className="px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors whitespace-nowrap"
+                      >
+                        Explore
+                      </Link>
+                      <Link
+                        href="/my-orders"
+                        className="px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors whitespace-nowrap"
+                      >
+                        My Orders
+                      </Link>
+                    </>
                   )}
                   <div className="flex items-center gap-2">
                     <User className="h-5 w-5 text-gray-600 flex-shrink-0" />
@@ -227,14 +235,24 @@ export default function Navbar() {
                         <span className="font-medium">Dashboard</span>
                       </Link>
                     ) : (
-                      <Link
-                        href="/explore"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                      >
-                        <ShoppingBag className="h-5 w-5" />
-                        <span className="font-medium">Explore</span>
-                      </Link>
+                      <>
+                        <Link
+                          href="/explore"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                        >
+                          <ShoppingBag className="h-5 w-5" />
+                          <span className="font-medium">Explore</span>
+                        </Link>
+                        <Link
+                          href="/my-orders"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                        >
+                          <PackageCheck className="h-5 w-5" />
+                          <span className="font-medium">My Orders</span>
+                        </Link>
+                      </>
                     )}
                   </div>
 

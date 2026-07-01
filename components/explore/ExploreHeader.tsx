@@ -11,6 +11,7 @@ import {
   X,
   ChevronDown,
   LayoutDashboard,
+  PackageCheck,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -219,23 +220,43 @@ export const ExploreHeader = ({
                     {/* Menu Items */}
                     <div className="py-1">
                       {user.role === "VENDOR" ? (
-                        <Link
-                          href="/dashboard"
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-[#374151] hover:bg-[#f3f4f6] transition-colors"
-                          onClick={() => setShowUserMenu(false)}
-                        >
-                          <LayoutDashboard className="h-4 w-4" />
-                          Dashboard
-                        </Link>
+                        <>
+                          <Link
+                            href="/dashboard"
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-[#374151] hover:bg-[#f3f4f6] transition-colors"
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            <LayoutDashboard className="h-4 w-4" />
+                            Dashboard
+                          </Link>
+                          <Link
+                            href="/my-orders"
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-[#374151] hover:bg-[#f3f4f6] transition-colors"
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            <PackageCheck className="h-4 w-4" />
+                            My Orders
+                          </Link>
+                        </>
                       ) : (
-                        <Link
-                          href="/profile"
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-[#374151] hover:bg-[#f3f4f6] transition-colors"
-                          onClick={() => setShowUserMenu(false)}
-                        >
-                          <User2 className="h-4 w-4" />
-                          My Profile
-                        </Link>
+                        <>
+                          <Link
+                            href="/my-orders"
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-[#374151] hover:bg-[#f3f4f6] transition-colors"
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            <PackageCheck className="h-4 w-4" />
+                            My Orders
+                          </Link>
+                          <Link
+                            href="/profile"
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-[#374151] hover:bg-[#f3f4f6] transition-colors"
+                            onClick={() => setShowUserMenu(false)}
+                          >
+                            <User2 className="h-4 w-4" />
+                            My Profile
+                          </Link>
+                        </>
                       )}
 
                       <div className="border-t border-[#e5e7eb] my-1" />

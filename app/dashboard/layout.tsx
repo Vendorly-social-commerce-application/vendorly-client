@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Home,
   Package,
@@ -134,11 +134,27 @@ export default function DashboardLayout({
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const router = useRouter();
+  const { user, logout, isLoading } = useAuth();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!mounted || isLoading) {
+      return;
+    }
+
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+
+    if (user.role === "CUSTOMER") {
+      router.replace("/my-orders");
+    }
+  }, [isLoading, mounted, router, user]);
 
   // Close mobile sidebar when screen size changes to desktop
   useEffect(() => {
@@ -156,7 +172,7 @@ export default function DashboardLayout({
   }, [mobileSidebarOpen, sidebarOpen]);
 
   // During SSR and initial hydration, render without user-dependent content
-  if (!mounted) {
+  if (!mounted || (mounted && !isLoading && (!user || user.role === "CUSTOMER"))) {
     return (
       <TooltipProvider>
         <div className="min-h-screen bg-gray-50">
