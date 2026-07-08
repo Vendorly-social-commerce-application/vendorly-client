@@ -76,8 +76,6 @@ export default function StorePage() {
     );
   }
 
-  // Helper: extract a plain string label from a product's category field.
-  // Backend shape is: category: [{ category: { id, name } }]
   const getCategoryLabel = (cat: any): string => {
     if (!cat) return "";
     if (typeof cat === "string") return cat;
@@ -89,7 +87,6 @@ export default function StorePage() {
     return cat.category?.name || cat.name || cat.title || "";
   };
 
-  // Derive categories directly from products (avoids stale getCategories() state)
   const categories: string[] = Array.from(
     new Set(
       (currentStore.products || [])
@@ -102,11 +99,18 @@ export default function StorePage() {
 
   const filteredProducts = activeCategory
     ? currentStore.products?.filter(
-        (p: any) => getCategoryLabel(p.category).toLowerCase() === activeCategory.toLowerCase()
+        (p: any) =>
+          getCategoryLabel(p.category).toLowerCase() ===
+          activeCategory.toLowerCase()
       )
     : currentStore.products;
 
-  const whatsappNumber = currentStore.user?.phone?.replace(/\D/g, "");
+  // ✅ Fixed — falls back to vendorPhone from first product if user.phone is missing
+  const whatsappNumber = (
+    currentStore.user?.phone ||
+    currentStore.products?.[0]?.vendorPhone ||
+    ""
+  ).replace(/\D/g, "");
 
   return (
     <div className="min-h-screen bg-[#F7F8FA]" style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -167,8 +171,8 @@ export default function StorePage() {
               </div>
 
               {whatsappNumber && (
-                <a
-                  href={`https://wa.me/${whatsappNumber}`}
+                
+                 <a href={`https://wa.me/${whatsappNumber}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all hover:opacity-90 active:scale-95 shadow-sm"
@@ -195,7 +199,7 @@ export default function StorePage() {
               by {currentStore.user?.fullName}
             </p>
 
-            {/* Stat pills + trust badges in one row on desktop */}
+            {/* Stat pills + trust badges */}
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-100 text-xs text-gray-600 font-medium">
                 <ShoppingBag className="h-3.5 w-3.5 text-emerald-500" />
@@ -215,14 +219,14 @@ export default function StorePage() {
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-100 text-xs text-gray-500">
                   <Calendar className="h-3.5 w-3.5 text-gray-400" />
                   Joined{" "}
-                  {formatDistanceToNow(new Date(currentStore.createdAt), { addSuffix: true })}
+                  {formatDistanceToNow(new Date(currentStore.createdAt), {
+                    addSuffix: true,
+                  })}
                 </span>
               )}
 
-              {/* Divider — hidden on small screens */}
               <span className="hidden sm:block w-px h-4 bg-gray-200" />
 
-              {/* Trust badges inline with stats on desktop */}
               {[
                 { icon: Shield, label: "Verified vendor" },
                 { icon: Truck, label: "Fast delivery" },
@@ -237,8 +241,12 @@ export default function StorePage() {
                     color: "#15803d",
                   }}
                 >
-                  <Icon style={{ width: 11, height: 11, color: "#16a34a", flexShrink: 0 }} />
-                  <span className="text-[10px] font-medium whitespace-nowrap">{label}</span>
+                  <Icon
+                    style={{ width: 11, height: 11, color: "#16a34a", flexShrink: 0 }}
+                  />
+                  <span className="text-[10px] font-medium whitespace-nowrap">
+                    {label}
+                  </span>
                 </div>
               ))}
             </div>
@@ -298,8 +306,12 @@ export default function StorePage() {
             <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
               <ShoppingBag className="h-7 w-7 text-gray-300" />
             </div>
-            <h3 className="text-gray-700 font-semibold text-sm mb-1">No products here yet</h3>
-            <p className="text-gray-400 text-xs">Check back soon or browse all categories.</p>
+            <h3 className="text-gray-700 font-semibold text-sm mb-1">
+              No products here yet
+            </h3>
+            <p className="text-gray-400 text-xs">
+              Check back soon or browse all categories.
+            </p>
             {activeCategory && (
               <button
                 onClick={() => setActiveCategory(null)}

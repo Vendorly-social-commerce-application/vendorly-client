@@ -20,6 +20,7 @@ export interface StoreData {
   user: {
     fullName: string;
     location?: string | null;
+    phone?: string | null; // ✅ added
   };
   products: StoreProduct[];
   createdAt: string;
