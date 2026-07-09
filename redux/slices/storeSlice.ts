@@ -17,10 +17,12 @@ export interface StoreData {
   id: string;
   storeName: string;
   storeSlug: string;
+  coverImage?: string | null;
+  logo?: string | null;
   user: {
     fullName: string;
     location?: string | null;
-    phone?: string | null; // ✅ added
+    phone?: string | null;
   };
   products: StoreProduct[];
   createdAt: string;

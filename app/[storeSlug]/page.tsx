@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useStore } from "@/hooks/useStore";
 import ProductGrid from "@/components/storefront/ProductGrid";
 import ProductModal from "@/components/storefront/ProductModal";
+
 import {
   Loader2,
   MessageCircle,
