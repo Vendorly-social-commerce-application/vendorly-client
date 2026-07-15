@@ -1,4 +1,10 @@
-import { Lock, CreditCard, BadgeCheck, ShieldCheck } from "lucide-react";
+import {
+  AlertCircle,
+  Lock,
+  CreditCard,
+  BadgeCheck,
+  ShieldCheck,
+} from "lucide-react";
 import { Tooltip } from "./Tooltip";
 import { FeeBreakdown, formatKobo } from "@/utils/paymentFee";
 
@@ -7,6 +13,7 @@ interface PriceBreakdownProps {
   quantity: number;
   unitPrice: number;
   isPaying: boolean;
+  paymentError?: string | null;
   onPay: () => void;
 }
 
@@ -15,6 +22,7 @@ export function PriceBreakdown({
   quantity,
   unitPrice,
   isPaying,
+  paymentError,
   onPay,
 }: PriceBreakdownProps) {
   return (
@@ -69,6 +77,22 @@ export function PriceBreakdown({
           </div>
         </div>
       </div>
+
+      {paymentError && (
+        <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
+            <div>
+              <p className="text-sm font-semibold text-amber-900">
+                Payment is temporarily unavailable
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-amber-800">
+                {paymentError}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pay button */}
       <button

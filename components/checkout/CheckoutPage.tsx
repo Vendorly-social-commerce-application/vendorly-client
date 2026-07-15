@@ -29,7 +29,8 @@ function CheckoutContent() {
 
   const { data: cart, isLoading: cartLoading } = useGetCart();
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
-  const { initializePayment, isPaying } = usePayment();
+  const { initializePayment, isPaying, paymentError, clearPaymentError } =
+    usePayment();
 
   const [quantity, setQuantity] = useState<number | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -62,6 +63,7 @@ function CheckoutContent() {
   }, [product, quantity]);
 
   function adjustQty(delta: number) {
+    clearPaymentError();
     setQuantity((q) => Math.max(1, Math.min((q ?? 1) + delta, maxQty)));
   }
 
@@ -196,6 +198,7 @@ function CheckoutContent() {
             quantity={quantity}
             unitPrice={product.price}
             isPaying={isPaying}
+            paymentError={paymentError}
             onPay={handlePay}
           />
         </div>

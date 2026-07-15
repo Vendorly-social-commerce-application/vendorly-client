@@ -8,7 +8,12 @@ export interface InitializePaymentDto {
 
 export interface PaymentResponse {
   authorizationUrl: string;
+  accessCode?: string;
   reference: string;
+  paymentId?: string;
+  orderId?: string;
+  amount?: number;
+  breakdown?: unknown;
 }
 
 export const paymentService = {
